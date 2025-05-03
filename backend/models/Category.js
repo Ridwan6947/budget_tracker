@@ -9,6 +9,10 @@ const categorySchema = new mongoose.Schema({
   description: {
     type: String,
     required: false
+  },
+  estimatedExpense: {
+    type: Number,
+    default: 0
   }
 });
 
