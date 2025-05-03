@@ -1,39 +1,57 @@
 const express = require('express');
 const router = express.Router();
 const Expense = require('../models/Expense');
+const AppError = require('../utils/AppError');
 
 // Get all expenses
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const expenses = await Expense.find().populate('category');
     res.json(expenses);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
 // Create a new expense
-router.post('/', async (req, res) => {
-  const expense = new Expense({
-    category: req.body.category,
-    amount: req.body.amount,
-    description: req.body.description
-  });
-
+router.post('/', async (req, res, next) => {
   try {
+    const { category, amount, description } = req.body;
+
+    if (!category || !amount) {
+      return next(new AppError('Category and amount are required', 400));
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+      return next(new AppError('Amount must be a positive value', 400));
+    }
+
+    const expense = new Expense({
+      category,
+      amount: parseFloat(amount),
+      description
+    });
+
     const newExpense = await expense.save();
     const populatedExpense = await Expense.findById(newExpense._id).populate('category');
     res.status(201).json(populatedExpense);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    next(err);
   }
 });
 
 // Get expenses by month
-router.get('/monthly/:year/:month', async (req, res) => {
+router.get('/monthly/:year/:month', async (req, res, next) => {
   try {
-    const startDate = new Date(req.params.year, req.params.month - 1, 1);
-    const endDate = new Date(req.params.year, req.params.month, 0);
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      return next(new AppError('Invalid year or month', 400));
+    }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
 
     const expenses = await Expense.find({
       date: {
@@ -44,7 +62,7 @@ router.get('/monthly/:year/:month', async (req, res) => {
 
     res.json(expenses);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 });
 
