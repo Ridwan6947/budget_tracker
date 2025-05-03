@@ -66,4 +66,17 @@ router.get('/monthly/:year/:month', async (req, res, next) => {
   }
 });
 
+// Delete an expense
+router.delete('/:id', async (req, res) => {
+  try {
+    const expense = await Expense.findByIdAndDelete(req.params.id);
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+    res.json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router; 
